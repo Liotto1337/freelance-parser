@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Заказы · {{ total }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600&family=Unbounded:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --ink: #172026;
+  --muted: #5b6873;
+  --line: #d9dfe5;
+  --focus: #3157d5;
+  --kwork: #1f8a5b;
+  --fl: #3157d5;
+  --freelanceru: #c2410c;
+  --chip: #e6ebf0;
+  --skill: #dfeee6;
+  --skill-ink: #17533b;
+  --interesting: #b7791f;
+  --responded: #1f8a5b;
+  --skipped: #8a949c;
+  --on-site: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12171b;
+    --surface: #1a2126;
+    --ink: #e6ebee;
+    --muted: #93a0a9;
+    --line: #2b343b;
+    --focus: #7d9cff;
+    --kwork: #3fbf86;
+    --fl: #6f8fff;
+    --freelanceru: #f07a3e;
+    --chip: #252e35;
+    --skill: #1e3a2e;
+    --skill-ink: #9fdcbf;
+    --interesting: #e0a53c;
+    --responded: #3fbf86;
+    --skipped: #6b767e;
+    --on-site: #12171b;
+  }
+}
+* { box-sizing: border-box; }
+.layout > * { min-width: 0; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 15px/1.5 "Golos Text", system-ui, sans-serif;
+}
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.layout { display: grid; grid-template-columns: 260px 1fr; gap: 28px; max-width: 1240px; margin: 0 auto; padding: 28px 24px 60px; }
+@media (max-width: 860px) { .layout { grid-template-columns: 1fr; padding: 16px; gap: 16px; } }
+
+/* --- Фильтры */
+aside form { position: sticky; top: 20px; display: grid; gap: 22px; }
+.brand { font: 700 22px/1.1 "Unbounded", sans-serif; margin: 0; letter-spacing: -0.01em; }
+.run { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.run .err { color: var(--freelanceru); }
+fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 4px; }
+legend { font-weight: 600; font-size: 13px; color: var(--muted); margin-bottom: 6px; padding: 0; }
+.opt { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; padding: 2px 0; }
+.opt .n { margin-left: auto; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 13px; }
+.opt input { accent-color: var(--ink); margin: 0; }
+.swatch { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+input[type=search], input[type=number], select {
+  width: 100%; font: inherit; font-size: 14px; color: var(--ink);
+  background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px;
+}
+.apply { font: inherit; font-weight: 600; background: var(--ink); color: var(--bg); border: 0; border-radius: 6px; padding: 9px; cursor: pointer; }
+.reset { font-size: 13px; color: var(--muted); text-align: center; }
+@media (max-width: 860px) {
+  aside form { position: static; }
+  details.filters:not([open]) > form { display: none; }
+}
+details.filters > summary { display: none; }
+@media (max-width: 860px) {
+  details.filters > summary { display: block; cursor: pointer; font-weight: 600; padding: 8px 0; }
+}
+
+/* --- Список */
+.head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 10px; gap: 12px; }
+.head h2 { margin: 0; font-size: 15px; font-weight: 600; }
+.head .count { color: var(--muted); font-weight: 400; }
+.list { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.order {
+  display: grid; grid-template-columns: 1fr auto; gap: 6px 24px;
+  background: var(--surface); padding: 16px 20px 14px 22px; position: relative;
+}
+.order::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--site); }
+.order[data-site=kwork] { --site: var(--kwork); }
+.order[data-site=fl] { --site: var(--fl); }
+.order[data-site=freelanceru] { --site: var(--freelanceru); }
+.order.is-skipped { opacity: .55; }
+.title { font-size: 16px; font-weight: 600; line-height: 1.35; margin: 0; max-width: 70ch; }
+.title a { text-decoration: none; }
+.title a:hover { text-decoration: underline; }
+.fresh { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--site); margin-right: 7px; vertical-align: 2px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; color: var(--muted); grid-column: 1; }
+.site { color: var(--site); font-weight: 600; }
+.chip { background: var(--chip); border-radius: 4px; padding: 1px 7px; font-size: 12.5px; color: var(--muted); }
+.chip.skill { background: var(--skill); color: var(--skill-ink); font-weight: 500; }
+.price { grid-column: 2; grid-row: 1 / span 2; text-align: right; min-width: 120px; }
+.price .sum { font: 500 20px/1.2 "Unbounded", sans-serif; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.price .sum.none { font: 400 13px/1.4 "Golos Text", sans-serif; color: var(--muted); }
+.price .hint { font-size: 12.5px; color: var(--muted); }
+.price .stats { font-size: 12.5px; color: var(--muted); margin-top: 4px; font-variant-numeric: tabular-nums; }
+details.desc { grid-column: 1 / -1; font-size: 14px; }
+details.desc summary { cursor: pointer; color: var(--muted); font-size: 13px; width: fit-content; }
+details.desc p { margin: 8px 0 4px; white-space: pre-line; max-width: 75ch; }
+.actions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 4px; }
+.btn { font: inherit; font-size: 13px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 6px; padding: 5px 11px; cursor: pointer; text-decoration: none; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--site); border-color: var(--site); color: var(--on-site); font-weight: 600; }
+.status { display: inline-flex; flex-wrap: wrap; margin-left: auto; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+.status button { font: inherit; font-size: 12.5px; border: 0; background: transparent; color: var(--muted); padding: 5px 10px; cursor: pointer; }
+.status button + button { border-left: 1px solid var(--line); }
+.status button[aria-pressed=true] { color: var(--on-site); }
+.status button[data-s=new][aria-pressed=true] { background: var(--muted); }
+.status button[data-s=interesting][aria-pressed=true] { background: var(--interesting); }
+.status button[data-s=responded][aria-pressed=true] { background: var(--responded); }
+.status button[data-s=skipped][aria-pressed=true] { background: var(--skipped); }
+@media (max-width: 600px) {
+  .order { grid-template-columns: 1fr; padding: 14px 14px 12px 18px; }
+  .price { grid-column: 1; grid-row: auto; text-align: left; }
+  .status { margin-left: 0; width: 100%; display: grid; grid-template-columns: repeat(4, 1fr); }
+  .status button { padding: 6px 2px; }
+}
+.empty { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 40px 24px; text-align: center; color: var(--muted); }
+.pager { display: flex; justify-content: center; gap: 8px; margin-top: 18px; }
+.toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--ink); color: var(--bg); padding: 8px 16px; border-radius: 6px; font-size: 14px; opacity: 0; transition: opacity .15s, transform .15s; pointer-events: none; }
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+@media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside>
+    <h1 class="brand">Заказы</h1>
+    {% if run %}
+    <div class="run">
+      Обновлено {{ run.age }}{% if run.age != 'только что' %} назад{% endif %}, новых {{ run.new_orders }}
+      {% if run.errors %}<br><span class="err" title="{{ run.errors|join('\n') }}">Ошибок при сборе: {{ run.errors|length }}</span>{% endif %}
+    </div>
+    {% endif %}
+    <details class="filters" open>
+      <summary>Фильтры</summary>
+      <form method="get" action="/">
+        <input type="search" name="q" value="{{ f.q }}" placeholder="Поиск по тексту" aria-label="Поиск по тексту">
+
+        <fieldset>
+          <legend>Площадки</legend>
+          {% for key, name in sites.items() %}
+          <label class="opt">
+            <input type="checkbox" name="site" value="{{ key }}" {% if key in f.sites %}checked{% endif %}>
+            <span class="swatch" style="background: var(--{{ key }})"></span>{{ name }}
+            <span class="n">{{ site_counts[key] }}</span>
+          </label>
+          {% endfor %}
+        </fieldset>
+
+        <fieldset>
+          <legend>Навыки</legend>
+          {% for key, name in skills.items() %}
+          <label class="opt">
+            <input type="checkbox" name="skill" value="{{ key }}" {% if key in f.skills %}checked{% endif %}>{{ name }}
+            <span class="n">{{ skill_counts[key] }}</span>
+          </label>
+          {% endfor %}
+          <label class="opt" style="margin-top:6px">
+            <input type="checkbox" name="matched" value="1" {% if f.matched %}checked{% endif %}>Скрыть заказы без моих навыков
+          </label>
+          <input type="hidden" name="matched" value="0">
+        </fieldset>
+
+        <fieldset>
+          <legend>Статус</legend>
+          <select name="status" aria-label="Статус">
+            <option value="active" {% if f.status == 'active' %}selected{% endif %}>Новые и интересные</option>
+            {% for key, name in statuses.items() %}
+            <option value="{{ key }}" {% if f.status == key %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+            <option value="all" {% if f.status == 'all' %}selected{% endif %}>Все</option>
+          </select>
+        </fieldset>
+
+        <fieldset>
+          <legend>Опубликован</legend>
+          <select name="period" aria-label="Период">
+            {% for key, name in [('all','За всё время'),('24h','За сутки'),('3d','За 3 дня'),('7d','За неделю')] %}
+            <option value="{{ key }}" {% if f.period == key %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
+        </fieldset>
+
+        <fieldset>
+          <legend>Бюджет от, ₽</legend>
+          <input type="number" name="min_budget" min="0" step="1000" value="{{ f.min_budget or '' }}" placeholder="Любой" aria-label="Минимальный бюджет">
+        </fieldset>
+
+        <button class="apply" type="submit">Показать</button>
+        <a class="reset" href="/">Сбросить фильтры</a>
+      </form>
+    </details>
+  </aside>
+
+  <main>
+    <div class="head">
+      <h2>{{ total|plural('заказ', 'заказа', 'заказов') }}{% if pages > 1 %} <span class="count">страница {{ page }} из {{ pages }}</span>{% endif %}</h2>
+    </div>
+
+    {% if orders %}
+    <div class="list">
+      {% for o in orders %}
+      <article class="order{% if o.status == 'skipped' %} is-skipped{% endif %}" data-site="{{ o.site }}" data-id="{{ o.id }}">
+        <h3 class="title">
+          {% if o.fresh %}<span class="fresh" title="Появился за последний час"></span>{% endif %}
+          <a href="{{ o.url }}" target="_blank" rel="noopener">{{ o.title }}</a>
+        </h3>
+        <div class="meta">
+          <span class="site">{{ sites[o.site] }}</span>
+          <span>{{ o.categories|join(', ') }}</span>
+          <span title="{{ o.published_at }}">{{ o.age }}</span>
+          {% for s in o.skills %}<span class="chip skill">{{ skills[s] }}</span>{% endfor %}
+          {% for t in o.tags[:4] %}<span class="chip">{{ t }}</span>{% endfor %}
+        </div>
+        <div class="price">
+          {% if o.budget %}
+          <div class="sum">{{ o.budget|money }} ₽</div>
+          {% if 'допустимо' in o.budget_text %}<div class="hint">{{ o.budget_text.split('(')[1].rstrip(')') }}</div>
+          {% elif o.budget_text.startswith('от') %}<div class="hint">{{ o.budget_text }}</div>{% endif %}
+          {% else %}
+          <div class="sum none">{{ o.budget_text or 'Бюджет не указан' }}</div>
+          {% endif %}
+          <div class="stats">
+            {% if o.responses is not none %}{{ o.responses }} откл.{% endif %}
+            {% if o.views is not none %}&nbsp; {{ o.views }} просм.{% endif %}
+          </div>
+        </div>
+        {% if o.description %}
+        <details class="desc">
+          <summary>Описание</summary>
+          <p>{{ o.description }}</p>
+        </details>
+        {% endif %}
+        <div class="actions">
+          <a class="btn primary" href="{{ o.url }}" target="_blank" rel="noopener">Открыть заказ</a>
+          <button class="btn" type="button" data-copy>Скопировать отклик</button>
+          <div class="status" role="group" aria-label="Статус заказа">
+            {% for key, name in statuses.items() %}
+            <button type="button" data-s="{{ key }}" aria-pressed="{{ 'true' if o.status == key else 'false' }}">{{ name }}</button>
+            {% endfor %}
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+    {% if pages > 1 %}
+    <nav class="pager" aria-label="Страницы">
+      {% if page > 1 %}<a class="btn" href="{{ page_url(page - 1) }}">Назад</a>{% endif %}
+      <span class="btn" aria-current="page">{{ page }} / {{ pages }}</span>
+      {% if page < pages %}<a class="btn" href="{{ page_url(page + 1) }}">Дальше</a>{% endif %}
+    </nav>
+    {% endif %}
+    {% else %}
+    <div class="empty">
+      {% if run %}По этим фильтрам заказов нет. Попробуйте снять часть фильтров или <a href="/">сбросить их</a>.
+      {% else %}Заказов пока нет. Запустите сборщик: <code>python collector.py</code>{% endif %}
+    </div>
+    {% endif %}
+  </main>
+</div>
+<div class="toast" role="status" aria-live="polite"></div>
+
+<script>
+// На телефоне фильтры свёрнуты, чтобы сразу были видны заказы
+if (matchMedia('(max-width: 860px)').matches) document.querySelector('details.filters').open = false;
+const REPLY = {{ reply|tojson }};
+const toast = document.querySelector('.toast');
+function say(text) {
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(say.t);
+  say.t = setTimeout(() => toast.classList.remove('show'), 1800);
+}
+document.addEventListener('click', async (e) => {
+  const order = e.target.closest('.order');
+  if (!order) return;
+  if (e.target.matches('[data-copy]')) {
+    try { await navigator.clipboard.writeText(REPLY); say('Отклик скопирован'); }
+    catch { say('Не удалось скопировать. Браузер запретил доступ к буферу'); }
+  }
+  const btn = e.target.closest('.status button');
+  if (btn) {
+    const s = btn.dataset.s;
+    const r = await fetch(`/api/orders/${order.dataset.id}/status`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({status: s}),
+    });
+    if (!r.ok) { say('Статус не сохранён, сервер ответил ' + r.status); return; }
+    order.querySelectorAll('.status button').forEach(b => b.setAttribute('aria-pressed', b === btn));
+    order.classList.toggle('is-skipped', s === 'skipped');
+    say('Статус: ' + btn.textContent);
+  }
+});
+</script>
+</body>
+</html>

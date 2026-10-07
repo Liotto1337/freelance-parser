@@ -1,0 +1,13 @@
+[Unit]
+Description=Freelance orders dashboard
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/freelance-parser
+EnvironmentFile=/opt/freelance-parser/.env
+ExecStart=/opt/freelance-parser/.venv/bin/python app.py
+Restart=always
+User=freelance
+
+[Install]
+WantedBy=multi-user.target

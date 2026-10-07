@@ -1,0 +1,13 @@
+[Unit]
+Description=Freelance orders collector
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/freelance-parser
+ExecStart=/opt/freelance-parser/.venv/bin/python collector.py --loop
+Restart=always
+RestartSec=60
+User=freelance
+
+[Install]
+WantedBy=multi-user.target
