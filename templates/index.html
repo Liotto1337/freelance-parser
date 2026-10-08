@@ -73,6 +73,8 @@ input[type=search], input[type=number], select {
   width: 100%; font: inherit; font-size: 14px; color: var(--ink);
   background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px;
 }
+.range { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.range input { min-width: 0; }
 .apply { font: inherit; font-weight: 600; background: var(--ink); color: var(--bg); border: 0; border-radius: 6px; padding: 9px; cursor: pointer; }
 .reset { font-size: 13px; color: var(--muted); text-align: center; }
 @media (max-width: 860px) {
@@ -200,8 +202,12 @@ details.desc p { margin: 8px 0 4px; white-space: pre-line; max-width: 75ch; }
         </fieldset>
 
         <fieldset>
-          <legend>Бюджет от, ₽</legend>
-          <input type="number" name="min_budget" min="0" step="1000" value="{{ f.min_budget or '' }}" placeholder="Любой" aria-label="Минимальный бюджет">
+          <legend>Бюджет, ₽</legend>
+          <div class="range">
+            <input type="number" name="min_budget" min="0" step="1000" value="{{ f.min_budget or '' }}" placeholder="от" aria-label="Минимальный бюджет">
+            <span>—</span>
+            <input type="number" name="max_budget" min="0" step="1000" value="{{ f.max_budget or '' }}" placeholder="до" aria-label="Максимальный бюджет">
+          </div>
         </fieldset>
 
         <button class="apply" type="submit">Показать</button>

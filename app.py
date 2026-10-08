@@ -41,6 +41,7 @@ def _filters():
         "skills": a.getlist("skill"),
         "status": a.get("status", "active"),
         "min_budget": a.get("min_budget", type=int),
+        "max_budget": a.get("max_budget", type=int),
         "q": (a.get("q") or "").strip(),
         "matched": a.get("matched", "1") == "1",
         "period": a.get("period", "all"),
@@ -60,6 +61,9 @@ def _query(f, limit, offset):
     if f["min_budget"]:
         where.append("budget >= ?")
         params.append(f["min_budget"])
+    if f["max_budget"]:
+        where.append("budget <= ?")
+        params.append(f["max_budget"])
     if f["q"]:
         where.append("(instr(ulower(title), ?) > 0 OR instr(ulower(description), ?) > 0)")
         params += [f["q"].lower()] * 2
