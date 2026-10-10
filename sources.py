@@ -123,6 +123,10 @@ def fetch_fl(slug: str, cat_name: str, skill: str | None, page: int = 1) -> list
         link = card.select_one("h2 a[href]")
         if not ext_id.isdigit() or not link:
             continue
+        # У закрытого заказа здесь «Исполнитель определён» или «Победитель определён»
+        status = card.select_one('[data-id="qa-order-status"]')
+        if status and _clean(status.get_text()):
+            continue
         price = card.select_one(".b-post__price")
         desc = card.select_one(".b-post__txt.text-5") or card.select_one(".b-post__body")
         foot = card.select_one(".b-post__foot .b-post__txt")
