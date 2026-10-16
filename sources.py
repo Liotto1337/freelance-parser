@@ -30,6 +30,7 @@ class Order:
     published_text: str = ""          # «20 минут назад» и т.п.
     responses: int | None = None
     views: int | None = None
+    hired: bool = False               # покупатель уже выбрал исполнителя
 
 
 session = requests.Session()
@@ -46,10 +47,11 @@ def _get(url: str, params=None) -> str:
 
 
 def _to_int(text: str | None) -> int | None:
+    """Первое число в тексте: «5 444» -> 5444, «80 000 ₽ – 150 000 ₽» -> 80000."""
     if not text:
         return None
-    digits = re.sub(r"[^\d]", "", str(text).split(".")[0])
-    return int(digits) if digits else None
+    m = re.search(r"\d(?:[\d\s]*\d)?", str(text).split(".")[0])
+    return int(re.sub(r"\s", "", m.group())) if m else None
 
 
 def _clean(text: str) -> str:
@@ -99,6 +101,8 @@ def fetch_kwork(cat_id: int, cat_name: str, skill: str | None, page: int = 1) ->
             published_text=(w.get("wantDates") or {}).get("dateCreate", ""),
             responses=_to_int(w.get("kwork_count")),
             views=_to_int(w.get("views_dirty")),
+            # «Сбор предложений», пока исполнитель не выбран; потом «В работе»
+            hired=(w.get("altStatusHint") or {}).get("title", "Сбор предложений") != "Сбор предложений",
         ))
     return orders
 
@@ -125,8 +129,7 @@ def fetch_fl(slug: str, cat_name: str, skill: str | None, page: int = 1) -> list
             continue
         # У закрытого заказа здесь «Исполнитель определён» или «Победитель определён»
         status = card.select_one('[data-id="qa-order-status"]')
-        if status and _clean(status.get_text()):
-            continue
+        hired = bool(status and _clean(status.get_text()))
         price = card.select_one(".b-post__price")
         desc = card.select_one(".b-post__txt.text-5") or card.select_one(".b-post__body")
         foot = card.select_one(".b-post__foot .b-post__txt")
@@ -161,6 +164,7 @@ def fetch_fl(slug: str, cat_name: str, skill: str | None, page: int = 1) -> list
             published_text=when,
             responses=responses,
             views=_to_int(views_el.get_text()) if views_el else None,
+            hired=hired,
         ))
     return orders
 

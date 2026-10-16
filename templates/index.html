@@ -190,6 +190,19 @@ details.desc p { margin: 8px 0 4px; white-space: pre-line; max-width: 75ch; }
             {% endfor %}
             <option value="all" {% if f.status == 'all' %}selected{% endif %}>Все</option>
           </select>
+          <label class="opt" style="margin-top:6px">
+            <input type="checkbox" name="not_hired" value="1" {% if f.not_hired %}checked{% endif %}>Покупатель не сделал заказ
+          </label>
+          <input type="hidden" name="not_hired" value="0">
+        </fieldset>
+
+        <fieldset>
+          <legend>Сортировка</legend>
+          <select name="sort" aria-label="Сортировка">
+            {% for key, name in sorts.items() %}
+            <option value="{{ key }}" {% if f.sort == key %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+          </select>
         </fieldset>
 
         <fieldset>
@@ -240,7 +253,7 @@ details.desc p { margin: 8px 0 4px; white-space: pre-line; max-width: 75ch; }
           {% if o.budget %}
           <div class="sum">{{ o.budget|money }} ₽</div>
           {% if 'допустимо' in o.budget_text %}<div class="hint">{{ o.budget_text.split('(')[1].rstrip(')') }}</div>
-          {% elif o.budget_text.startswith('от') %}<div class="hint">{{ o.budget_text }}</div>{% endif %}
+          {% elif o.budget_text.startswith('от') or '–' in o.budget_text %}<div class="hint">{{ o.budget_text }}</div>{% endif %}
           {% else %}
           <div class="sum none">{{ o.budget_text or 'Бюджет не указан' }}</div>
           {% endif %}

@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS orders (
     published_text TEXT,
     responses INTEGER,
     views INTEGER,
+    hired INTEGER NOT NULL DEFAULT 0,    -- 1, если покупатель уже выбрал исполнителя
     status TEXT NOT NULL DEFAULT 'new',  -- new | interesting | responded | skipped
     note TEXT DEFAULT '',
     first_seen TEXT NOT NULL,
@@ -78,6 +79,10 @@ def connect():
 def init():
     with connect() as c:
         c.executescript(SCHEMA)
+        # Базы, созданные до появления колонки hired
+        cols = {r["name"] for r in c.execute("PRAGMA table_info(orders)")}
+        if "hired" not in cols:
+            c.execute("ALTER TABLE orders ADD COLUMN hired INTEGER NOT NULL DEFAULT 0")
 
 
 def upsert(conn, order: Order) -> bool:
@@ -91,13 +96,13 @@ def upsert(conn, order: Order) -> bool:
         conn.execute(
             """INSERT INTO orders (site, ext_id, url, title, description, budget_text,
                budget, categories, tags, skills, published_at, published_text,
-               responses, views, first_seen, last_seen)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+               responses, views, hired, first_seen, last_seen)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (order.site, order.ext_id, order.url, order.title, order.description,
              order.budget_text, order.budget, json.dumps([order.category], ensure_ascii=False),
              json.dumps(order.tags, ensure_ascii=False), json.dumps(skills),
              order.published_at or now, order.published_text,
-             order.responses, order.views, now, now))
+             order.responses, order.views, int(order.hired), now, now))
         return True
     cats = json.loads(row["categories"] or "[]")
     if order.category not in cats:
@@ -105,9 +110,9 @@ def upsert(conn, order: Order) -> bool:
     merged = sorted(set(json.loads(row["skills"] or "[]")) | set(skills))
     conn.execute(
         """UPDATE orders SET title=?, budget_text=?, budget=?, categories=?, skills=?,
-           responses=COALESCE(?, responses), views=COALESCE(?, views), last_seen=?
+           responses=COALESCE(?, responses), views=COALESCE(?, views), hired=?, last_seen=?
            WHERE id=?""",
         (order.title, order.budget_text, order.budget,
          json.dumps(cats, ensure_ascii=False), json.dumps(merged),
-         order.responses, order.views, now, row["id"]))
+         order.responses, order.views, int(order.hired), now, row["id"]))
     return False

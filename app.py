@@ -21,6 +21,14 @@ SITES = {
     "freelanceru": "freelance.ru",
 }
 PAGE_SIZE = 60
+# Сортировка: ключ -> (название в дашборде, ORDER BY). Заказы без значения идут в конце.
+SORTS = {
+    "new": ("Сначала новые", "published_at DESC, id DESC"),
+    "responses_asc": ("Меньше откликов", "responses IS NULL, responses ASC, published_at DESC"),
+    "responses_desc": ("Больше откликов", "responses IS NULL, responses DESC, published_at DESC"),
+    "budget_desc": ("Дороже", "budget IS NULL, budget DESC, published_at DESC"),
+    "budget_asc": ("Дешевле", "budget IS NULL, budget ASC, published_at DESC"),
+}
 
 
 @app.before_request
@@ -44,7 +52,9 @@ def _filters():
         "max_budget": a.get("max_budget", type=int),
         "q": (a.get("q") or "").strip(),
         "matched": a.get("matched", "1") == "1",
+        "not_hired": a.get("not_hired", "1") == "1",
         "period": a.get("period", "all"),
+        "sort": a.get("sort") if a.get("sort") in SORTS else "new",
     }
 
 
@@ -69,6 +79,8 @@ def _query(f, limit, offset):
         params += [f["q"].lower()] * 2
     if f["matched"]:
         where.append("skills != '[]'")
+    if f["not_hired"]:
+        where.append("hired = 0")
     if f["skills"]:
         where.append("(" + " OR ".join("skills LIKE ?" for _ in f["skills"]) + ")")
         params += [f'%"{s}"%' for s in f["skills"]]
@@ -80,7 +92,7 @@ def _query(f, limit, offset):
     with db.connect() as c:
         total = c.execute(f"SELECT COUNT(*) FROM orders {sql_where}", params).fetchone()[0]
         rows = c.execute(
-            f"SELECT * FROM orders {sql_where} ORDER BY published_at DESC, id DESC LIMIT ? OFFSET ?",
+            f"SELECT * FROM orders {sql_where} ORDER BY {SORTS[f['sort']][1]} LIMIT ? OFFSET ?",
             params + [limit, offset]).fetchall()
     return total, [_row(r) for r in rows]
 
@@ -112,7 +124,7 @@ def _age(iso):
 def _sidebar_counts():
     with db.connect() as c:
         rows = c.execute(
-            "SELECT site, skills FROM orders WHERE status IN ('new','interesting')").fetchall()
+            "SELECT site, skills FROM orders WHERE status IN ('new','interesting') AND hired = 0").fetchall()
         last_run = c.execute("SELECT * FROM runs ORDER BY id DESC LIMIT 1").fetchone()
     sites = {k: 0 for k in SITES}
     skills = {k: 0 for k in config.SKILLS}
@@ -139,7 +151,8 @@ def index():
         pages=max((total + PAGE_SIZE - 1) // PAGE_SIZE, 1),
         sites=SITES, site_counts=site_counts,
         skills={k: v[0] for k, v in config.SKILLS.items()}, skill_counts=skill_counts,
-        statuses=db.STATUSES, run=run, reply=config.REPLY_TEMPLATE,
+        statuses=db.STATUSES, sorts={k: v[0] for k, v in SORTS.items()},
+        run=run, reply=config.REPLY_TEMPLATE,
     )
 
 
