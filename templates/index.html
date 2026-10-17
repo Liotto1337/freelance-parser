@@ -270,7 +270,7 @@ details.desc p { margin: 8px 0 4px; white-space: pre-line; max-width: 75ch; }
         {% endif %}
         <div class="actions">
           <a class="btn primary" href="{{ o.url }}" target="_blank" rel="noopener">Открыть заказ</a>
-          <button class="btn" type="button" data-copy>Скопировать отклик</button>
+          <button class="btn" type="button" data-copy="{{ o.reply }}">Скопировать отклик</button>
           <div class="status" role="group" aria-label="Статус заказа">
             {% for key, name in statuses.items() %}
             <button type="button" data-s="{{ key }}" aria-pressed="{{ 'true' if o.status == key else 'false' }}">{{ name }}</button>
@@ -300,7 +300,6 @@ details.desc p { margin: 8px 0 4px; white-space: pre-line; max-width: 75ch; }
 <script>
 // На телефоне фильтры свёрнуты, чтобы сразу были видны заказы
 if (matchMedia('(max-width: 860px)').matches) document.querySelector('details.filters').open = false;
-const REPLY = {{ reply|tojson }};
 const toast = document.querySelector('.toast');
 function say(text) {
   toast.textContent = text;
@@ -312,7 +311,7 @@ document.addEventListener('click', async (e) => {
   const order = e.target.closest('.order');
   if (!order) return;
   if (e.target.matches('[data-copy]')) {
-    try { await navigator.clipboard.writeText(REPLY); say('Отклик скопирован'); }
+    try { await navigator.clipboard.writeText(e.target.dataset.copy); say('Отклик скопирован'); }
     catch { say('Не удалось скопировать. Браузер запретил доступ к буферу'); }
   }
   const btn = e.target.closest('.status button');

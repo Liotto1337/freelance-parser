@@ -3,6 +3,7 @@
     python app.py   # http://127.0.0.1:8080
 """
 import json
+import re
 import secrets
 from datetime import datetime, timedelta
 from urllib.parse import urlencode
@@ -103,7 +104,35 @@ def _row(r):
         d[k] = json.loads(d[k] or "[]")
     d["fresh"] = d["first_seen"] >= (utcnow() - timedelta(hours=1)).isoformat()
     d["age"] = _age(d["published_at"])
+    d["reply"] = _reply(d)
     return d
+
+
+# (площадка, название категории) -> навык узкой категории
+CATEGORY_SKILL = {
+    **{("kwork", name): skill for _, name, skill in config.KWORK_CATEGORIES},
+    **{("fl", name): skill for _, name, skill in config.FL_CATEGORIES},
+    **{("freelanceru", name): skill for _, name, skill in config.FREELANCERU_CATEGORIES},
+}
+
+
+def _main_skill(d):
+    for cat in d["categories"]:
+        skill = CATEGORY_SKILL.get((d["site"], cat))
+        if skill:
+            return skill
+    return next((s for s in config.SKILLS if s in d["skills"]), None)
+
+
+def _reply(d):
+    """Отклик для заказа по config.REPLY_TEMPLATE. Незнакомые {поля} остаются как есть."""
+    values = {
+        "title": d["title"],
+        "experience": config.REPLY_EXPERIENCE.get(_main_skill(d), config.REPLY_EXPERIENCE_DEFAULT),
+        "budget": d["budget_text"] or "",
+        "site": SITES.get(d["site"], d["site"]),
+    }
+    return re.sub(r"\{(\w+)\}", lambda m: values.get(m.group(1), m.group()), config.REPLY_TEMPLATE)
 
 
 def _age(iso):
@@ -152,7 +181,7 @@ def index():
         sites=SITES, site_counts=site_counts,
         skills={k: v[0] for k, v in config.SKILLS.items()}, skill_counts=skill_counts,
         statuses=db.STATUSES, sorts={k: v[0] for k, v in SORTS.items()},
-        run=run, reply=config.REPLY_TEMPLATE,
+        run=run,
     )
 
 
